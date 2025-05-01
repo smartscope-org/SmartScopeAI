@@ -13,7 +13,9 @@ class FindHolesKwargs(BaseModel):
     conf_thres: float = 0.7
     iou_thres: float = 0.7
     weights_circle: str = 'circle_weights/20250129_best.pt'
+    scaling_factor: float =  1
     class_mapping: Optional[Dict]
+    
 
 
 class FindSquaresRequest(BaseModel):

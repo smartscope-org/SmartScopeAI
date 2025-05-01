@@ -14,7 +14,8 @@ from ..smartscopeAI.detect_holes import detect_holes_yolo #, detect_and_classify
 logger = logging.getLogger(__name__)
 
 WEIGHT_DIR = os.path.join(os.getenv("TEMPLATE_FILES", "template_files"), 'weights')
-IS_CUDA = False if eval(os.getenv('FORCE_CPU','False')) else torch.cuda.is_available() 
+IS_CUDA = False if eval(os.getenv('FORCE_CPU','False')) else torch.cuda.is_available()
+print(f'CUDA available: {IS_CUDA}')
 
 
 # def find_squares(image, class_map:Dict=None, **kwargs):
@@ -34,7 +35,7 @@ IS_CUDA = False if eval(os.getenv('FORCE_CPU','False')) else torch.cuda.is_avail
 #     squares = [i.numpy().tolist() for i in squares]
 #     return (squares, labels)
 
-def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=10,  **kwargs):
+def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=10, scaling_factor=1, **kwargs):
    
     def filter_hole_class(hole):
 
@@ -57,6 +58,7 @@ def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=
     all_targets = detect_holes_yolo(image, **kwargs)
     logger.debug(f'{all_targets},{type(all_targets)}')
     holes = list(filter(lambda x: filter_hole_class(x), all_targets))
+    holes = [np.array(hole[0:-1]) * scaling_factor for hole in holes]
 
     logger.info(f'AI hole detection found {len(holes)} holes')
     # success = True
@@ -64,7 +66,7 @@ def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=
     #     success = False
     logger.debug(f'{holes[0]},{type(holes[0])}')
     
-    holes = [(np.array(hole[0:-1])-np.array(list(center)*2)) + np.array(list(center)*2) for hole in holes]
+    holes = [(np.array(hole)-np.array(list(center)*2)) + np.array(list(center)*2) for hole in holes]
     holes = [i.tolist() for i in holes]
     # logger.debug(f'{holes[0]},{type(holes[0])}')
     return holes
