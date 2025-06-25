@@ -99,6 +99,8 @@ def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:in
     holes = [i.tolist() for i in holes]
     # logger.debug(f'{holes[0]},{type(holes[0])}')
     return holes, labels
+
+
 # def find_holes(montage:Montage, class_map:Dict=None, success_threshold:int=10,  **kwargs):
 #     return find_holes_from_image(montage.image, class_map, success_threshold, **kwargs)
 
