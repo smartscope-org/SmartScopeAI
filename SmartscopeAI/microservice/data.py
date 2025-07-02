@@ -43,7 +43,7 @@ class SimSiamData(BaseModel):
 
     @property
     def all_target_pks(self):
-        return [target.stem for target in self.data_dir.glob(f'*.jpg')]
+        return [target.stem for target in self.image_directory.glob(f'*.jpg')]
 
     @property
     def data_dir(self):

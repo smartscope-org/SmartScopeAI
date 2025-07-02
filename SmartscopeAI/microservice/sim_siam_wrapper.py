@@ -51,6 +51,7 @@ def siam_siam_inference(data):
     else:
         print(f'Found {len(df)} previous inferences')
         filtered_df, missing_pks = extract_targets_from_inference(df, validated_data.all_target_pks)
+        print(f'Found {len(filtered_df)} targets in previous inferences. Missing {len(missing_pks)} targets')
         if len(missing_pks) == 0:
             is_checkpoint_up_to_date = set(filtered_df.checkpoint_path.tolist()) == set([validated_data.checkpoint_path])
             if is_checkpoint_up_to_date:
@@ -95,9 +96,8 @@ def siam_siam_training(data):
 
     args = SimSiamKwargs(
             config_file= f'/mnt/smartscope/jo-dev/ai_microservice/SmartscopeAI/smartscope_simsiam/example/config/simsiam_smartscope_{validated_data.mag_level}s.yaml',
-            data_dir= str(validated_data.data_dir),
+            data_dir= str(validated_data.image_directory),
             output_dir= str(output_directory),
-            # checkpoint_path= validated_data.checkpoint_path,
     )
     args = get_args(args)
     main.main('cuda', args)
