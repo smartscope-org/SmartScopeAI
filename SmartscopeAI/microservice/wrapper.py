@@ -71,7 +71,7 @@ def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=
     # logger.debug(f'{holes[0]},{type(holes[0])}')
     return holes
 
-def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:int=10,  **kwargs):
+def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:int=10, scaling_factor=1,  **kwargs):
    
     if isinstance(image, bytes):
         image = np.frombuffer(image, dtype=np.uint8)
@@ -96,6 +96,7 @@ def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:in
 
     labels = [hole[-1] for hole in all_targets]
     holes = [(np.array(hole[0:-1])-np.array(list(center)*2)) + np.array(list(center)*2) for hole in all_targets]
+    holes = [hole * scaling_factor for hole in holes]
     holes = [i.tolist() for i in holes]
     # logger.debug(f'{holes[0]},{type(holes[0])}')
     return holes, labels
