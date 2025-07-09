@@ -5,7 +5,7 @@ REDIS_PORT = os.getenv('REDIS_PORT', "6379")
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
 CALLBACK_SITE = os.getenv('CALLBACK_SITE', "http://localhost:8000") 
 
-if REDIS_PASSWORD:
+if REDIS_PASSWORD is not None:
     REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}"
 else:
     REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}"
