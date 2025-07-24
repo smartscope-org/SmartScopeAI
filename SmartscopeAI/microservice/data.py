@@ -32,7 +32,7 @@ class SimSiamTargets(BaseModel):
 class SimSiamData(BaseModel):
     dataset_name: str
     mag_level: str
-    checkpoint_path: Optional[str]
+    checkpoint_path: Optional[str] = None
 
     # @model_validator(mode='before')
     # def checkpoint_path_validator(cls,data):
@@ -60,8 +60,9 @@ class SimSiamData(BaseModel):
     
     @property
     def scratch_checkpoint_path(self) -> Path:
-        if self.checkpoint_path is None:
+        if self.checkpoint_path == 'None':
             return Path('/mnt/smartscope/jo-dev/ai_microservice/SmartscopeAI/smartscope_simsiam/example/pretrained_checkpoints', f'{self.mag_level}s/model_best.pth')
+        print(f'Using provided checkpoint path: {self.checkpoint_path}, {type(self.checkpoint_path)}')
         return self.output_directory / 'checkpoints' / 'model_best.pth'
     
     @property
@@ -80,6 +81,9 @@ class SimSiamKwargs(BaseModel):
     ckpt_dir: Optional[str] = None
     eval_from: Optional[str] = None
     hide_progress: bool = False
+    embeddings: Optional[str] = None
+    disable_plotting: bool = True
+    fit_only:bool = False
 
 # class SimSiamSuggestSimilarKwargs(BaseModel):
 #     grid_directory: Path
