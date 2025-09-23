@@ -39,6 +39,7 @@ def extract_targets_from_inference(df: pd.DataFrame, all_pks:List[str]) -> pd.Da
 def siam_siam_inference(data):
     validated_data = SimSiamData.model_validate_json(data)
     print(f'Validated data: {validated_data.model_dump()}')
+    print('Current directory:', Path('.').resolve())
     print(str(validated_data.scratch_checkpoint_path))
     image_directory = validated_data.image_directory
     # extract_directory = validated_data.extract_directory
@@ -61,7 +62,7 @@ def siam_siam_inference(data):
             is_checkpoint_up_to_date = set(filtered_df.checkpoint_path.tolist()) == set([validated_data.checkpoint_path])
             if is_checkpoint_up_to_date:
                 print(f'Images already processed with checkpoint \"{validated_data.checkpoint_path}\", skipping')
-                return str(validated_data.output_data_file)
+                return str(validated_data.output_data_file_relative_to_scratch)
         
         #check which images where processing with a different checkpoint
         filtered_df = filtered_df[filtered_df.checkpoint_path != validated_data.checkpoint_path]
@@ -92,13 +93,15 @@ def siam_siam_inference(data):
     print(f'Starting inference')
 
     args = SimSiamKwargs(
-            config_file= '/mnt/smartscope/jo-dev/ai_microservice/SmartscopeAI/smartscope_simsiam/example/config/simsiam_smartscope_squares.yaml',
+            config_file= './SmartscopeAI/smartscope_simsiam/example/config/simsiam_smartscope_squares.yaml',
             data_dir= str(image_directory),
             output_dir= str(output_directory),
             checkpoint_path= str(validated_data.scratch_checkpoint_path),
     )
     args = get_args(args)
-    image_files, embeddings =  map_embeddings.main('cuda', args)
+    hardware = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f'Using device: {hardware}')
+    image_files, embeddings =  map_embeddings.main(hardware, args)
     print(len(image_files), len(embeddings))
 
 
@@ -117,11 +120,11 @@ def siam_siam_inference(data):
     args.data_dir = str(validated_data.image_directory)
     args.embeddings = all_embeddings
     args.fit_only = True  # Set to True to skip plotting
-    df['assignments'], df['umap'], df['tsne'], df['pca'] = map_embeddings.main('cuda', args)
+    df['assignments'], df['umap'], df['tsne'], df['pca'] = map_embeddings.main(hardware, args)
 
 
     df.to_parquet(validated_data.output_data_file, compression='gzip')
-    return str(validated_data.output_data_file)
+    return str(validated_data.output_data_file_relative_to_scratch)
 
 def siam_siam_training(data):
     validated_data = SimSiamData.model_validate_json(data)
@@ -136,11 +139,13 @@ def siam_siam_training(data):
     print(f'Starting training')
 
     args = SimSiamKwargs(
-            config_file= f'/mnt/smartscope/jo-dev/ai_microservice/SmartscopeAI/smartscope_simsiam/example/config/simsiam_smartscope_{validated_data.mag_level}s.yaml',
+            config_file= f'./SmartscopeAI/smartscope_simsiam/example/config/simsiam_smartscope_{validated_data.mag_level}s.yaml',
             data_dir= str(validated_data.image_directory),
             output_dir= str(output_directory),
     )
     args = get_args(args)
-    main.main('cuda', args)
+    hardware = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f'Using device: {hardware}')
+    main.main(hardware, args)
     return str(output_directory)
     

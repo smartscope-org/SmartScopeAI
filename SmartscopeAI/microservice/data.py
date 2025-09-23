@@ -44,12 +44,15 @@ class SimSiamData(BaseModel):
     @property
     def all_target_pks(self):
         return [target.stem for target in self.image_directory.glob(f'*.jpg')]
+    
+    @property
+    def scratch_dir(self):
+        return Path(os.getenv('SCRATCH_DIR', '/mnt/scratch'))
 
     @property
     def data_dir(self):
-        scratch_dir = os.getenv('SCRATCH_DIR', '/mnt/scratch')
-        return Path(scratch_dir, self.dataset_name)
-    
+        return self.scratch_dir / self.dataset_name
+
     @property
     def image_directory(self):
         return self.data_dir / 'images'
@@ -61,13 +64,19 @@ class SimSiamData(BaseModel):
     @property
     def scratch_checkpoint_path(self) -> Path:
         if self.checkpoint_path == 'None':
-            return Path('/mnt/smartscope/jo-dev/ai_microservice/SmartscopeAI/smartscope_simsiam/example/pretrained_checkpoints', f'{self.mag_level}s/model_best.pth')
+            return Path('./SmartscopeAI/smartscope_simsiam/example/pretrained_checkpoints', f'{self.mag_level}s/model_best.pth')
         print(f'Using provided checkpoint path: {self.checkpoint_path}, {type(self.checkpoint_path)}')
         return self.output_directory / 'checkpoints' / 'model_best.pth'
     
     @property
     def output_data_file(self) -> Path:
         return Path(self.output_directory / f'sim_siam_embeddings_{self.mag_level}.parquet.zip',)
+    
+    @property
+    def output_data_file_relative_to_scratch(self) -> Path:
+        print(f'Output data file: {self.output_data_file}, scratch dir: {self.scratch_dir}')
+        print(f'Relative path: {self.output_data_file.relative_to(self.scratch_dir)}')
+        return self.output_data_file.relative_to(self.scratch_dir)
     
 class SimSiamKwargs(BaseModel):
     config_file: str
