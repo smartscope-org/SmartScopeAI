@@ -38,6 +38,7 @@ COPY ./SmartscopeAI SmartscopeAI
 # Set up environment variables for production
 ENV PATH="/app/.venv/bin:$PATH"
 ENV TEMPLATE_FILES="/opt/template_files/"
+ENV NUMBA_CACHE_DIR="/tmp/numba_cache"
 
 # Start the application with Uvicorn in production mode, using environment variable references
 CMD ["celery", "-A", "SmartscopeAI.interfaces.celery.app", "worker", "--loglevel=DEBUG", "--pool=solo"]
