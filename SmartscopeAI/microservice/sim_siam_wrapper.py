@@ -120,7 +120,7 @@ def siam_siam_inference(data):
     args.data_dir = str(validated_data.image_directory)
     args.embeddings = all_embeddings
     args.fit_only = True  # Set to True to skip plotting
-    df['assignments'], df['umap'], df['tsne'], df['pca'] = map_embeddings.main(hardware, args)
+    df['assignments'], df['umap'], df['pca'] = map_embeddings.main(hardware, args)
 
 
     df.to_parquet(validated_data.output_data_file, compression='gzip')
