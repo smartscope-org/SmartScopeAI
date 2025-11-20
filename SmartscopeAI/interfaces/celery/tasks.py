@@ -9,6 +9,10 @@ from ...microservice.sim_siam_wrapper import siam_siam_inference, siam_siam_trai
 
 
 @app.task
+def ping():
+    return True
+
+@app.task
 def find_squares(data: str):
     result = run_method('find_squares',data)
     print(result)

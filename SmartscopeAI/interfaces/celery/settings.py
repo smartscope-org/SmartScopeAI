@@ -17,6 +17,7 @@ broker_url = f"{REDIS_URL}/0"
 
 task_track_started = True
 
+task_default_queue = os.getenv('WORKER_QUEUES', 'celery')
 # tasks_routes = {
 #     'smartscope.core.tasks.*': {'queue': 'smartscope'},
 #     'Smartscope.finders.tasks.*': {'queue': 'finders'},
