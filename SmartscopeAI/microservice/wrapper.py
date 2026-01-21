@@ -78,7 +78,7 @@ def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:in
         image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
     
     center = np.array([image.shape[1]/2, image.shape[0]//2],dtype=int)
-    logger.info('Running AI hole detection')
+    logger.info('Running AI square detection')
     # centroid = find_square_center(montage.image)
     kwargs['weights_circle'] = os.path.join(WEIGHT_DIR, kwargs['weights_circle']) 
     if not IS_CUDA:

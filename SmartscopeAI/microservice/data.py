@@ -17,6 +17,7 @@ class FindHolesKwargs(BaseModel):
     iou_thres: float = 0.7
     weights_circle: str = 'circle_weights/20250129_best.pt'
     scaling_factor: float =  1
+    agnostic: bool = False
     class_mapping: Optional[Dict]
     
 class SimSiamTargets(BaseModel):
