@@ -115,7 +115,7 @@ def siam_siam_inference(data):
     inference_df.set_index('pk', inplace=True)
     df = pd.concat([df, inference_df])
 
-    if len(df) > 1:
+    if len(df) > 2:
         all_embeddings = np.array(df['embeddings'].to_list())
         args.disable_plotting = False
         args.data_dir = str(validated_data.image_directory)
@@ -123,9 +123,9 @@ def siam_siam_inference(data):
         args.fit_only = True  # Set to True to skip plotting
         df['assignments'], df['umap'], df['pca'] = map_embeddings.main(hardware, args)
     else:
-        df['assignments'] = [0]
-        df['umap'] = [0]
-        df['pca'] = [0]
+        df['assignments'] = 0
+        df['umap'] = 0
+        df['pca'] = 0
 
 
 
