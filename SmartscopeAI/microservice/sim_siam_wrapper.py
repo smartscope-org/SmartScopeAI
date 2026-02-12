@@ -115,7 +115,7 @@ def siam_siam_inference(data):
     inference_df.set_index('pk', inplace=True)
     df = pd.concat([df, inference_df])
 
-    if len(df) > 2:
+    if len(df) > 3:
         all_embeddings = np.array(df['embeddings'].to_list())
         args.disable_plotting = False
         args.data_dir = str(validated_data.image_directory)
