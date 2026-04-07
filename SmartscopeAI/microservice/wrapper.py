@@ -39,8 +39,8 @@ def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=
    
     def filter_hole_class(hole):
 
-        logger.debug(f'{hole}')
-        logger.debug(class_mapping)
+        # logger.debug(f'{hole}')
+        # logger.debug(class_mapping)
         return class_mapping[hole[-1]]['name'] == 'Hole'
     
     if isinstance(image, bytes):
@@ -56,7 +56,7 @@ def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=
     
     logger.debug(f'kwargs: {kwargs}')
     all_targets = detect_holes_yolo(image, **kwargs)
-    logger.debug(f'{all_targets},{type(all_targets)}')
+    # logger.debug(f'{all_targets},{type(all_targets)}')
     holes = list(filter(lambda x: filter_hole_class(x), all_targets))
     holes = [np.array(hole[0:-1]) * scaling_factor for hole in holes]
 
@@ -64,7 +64,7 @@ def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=
     # success = True
     # if len(holes) < success_threshold:
     #     success = False
-    logger.debug(f'{holes[0]},{type(holes[0])}')
+    # logger.debug(f'{holes[0]},{type(holes[0])}')
     
     holes = [(np.array(hole)-np.array(list(center)*2)) + np.array(list(center)*2) for hole in holes]
     holes = [i.tolist() for i in holes]
@@ -86,7 +86,7 @@ def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:in
     
     logger.debug(f'kwargs: {kwargs}')
     all_targets = detect_holes_yolo(image, **kwargs)
-    logger.debug(f'{all_targets},{type(all_targets)}')
+    # logger.debug(f'{all_targets},{type(all_targets)}')
 
     logger.info(f'AI hole detection found {len(all_targets)} holes')
     # success = True
