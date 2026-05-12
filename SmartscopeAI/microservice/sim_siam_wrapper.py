@@ -69,7 +69,7 @@ def siam_siam_inference(data):
         print(f'Filtered {len(filtered_df)} images that were processed with a different checkpoint')
 
         df = df.drop(filtered_df.index)
-        missing_pks = missing_pks | set(filtered_df.index.tolist())
+        missing_pks = set(missing_pks) | set(filtered_df.index.tolist())
         print(f'Updated missing pks: {missing_pks}, only running inference on these targets')
         temp_dir = validated_data.data_dir / 'tmp'
         if not temp_dir.is_dir():
@@ -80,12 +80,12 @@ def siam_siam_inference(data):
             file.unlink()
         #link the missing pks to the temp directory
         for pk in missing_pks:
-            image_file = validated_data.image_directory / f'{pk}.jpg'
-            if image_file.is_file():
+            image_file = list(validated_data.image_directory.glob(f'*/{pk}.jpg'))
+            if image_file and image_file[0].is_file():
                 temp_file = temp_dir / f'{pk}.jpg'
-                temp_file.symlink_to(image_file)
+                temp_file.symlink_to(image_file[0])
             else:
-                print(f'Warning: Image file {image_file} not found, skipping')
+                print(f'Warning: Image file for {pk} not found, skipping')
         image_directory = temp_dir
         #linking the missing pk images to a temp directory
           
