@@ -1,10 +1,12 @@
 from typing import Callable, Dict, Optional, List
 from pathlib import Path
+import logging
 import os
 from .wrapper import find_holes_from_image, find_squares_from_image
 from pydantic import BaseModel, Base64Bytes, model_validator
 
 
+logger = logging.getLogger(__name__)
 class FindSquareKwargs(BaseModel):
     imgsz: int = 2048
     thresh: float = 0.2
@@ -67,7 +69,7 @@ class SimSiamData(BaseModel):
     def scratch_checkpoint_path(self) -> Path:
         if self.checkpoint_path == 'None':
             return Path('./SmartscopeAI/smartscope_simsiam/example/pretrained_checkpoints', f'{self.mag_level}s/model_best.pth')
-        print(f'Using provided checkpoint path: {self.checkpoint_path}, {type(self.checkpoint_path)}')
+        logger.info('Using provided checkpoint path: %s, %s', self.checkpoint_path, type(self.checkpoint_path))
         return self.output_directory / 'checkpoints' / 'model_best.pth'
     
     @property
@@ -76,8 +78,8 @@ class SimSiamData(BaseModel):
     
     @property
     def output_data_file_relative_to_scratch(self) -> Path:
-        print(f'Output data file: {self.output_data_file}, scratch dir: {self.scratch_dir}')
-        print(f'Relative path: {self.output_data_file.relative_to(self.scratch_dir)}')
+        logger.info('Output data file: %s, scratch dir: %s', self.output_data_file, self.scratch_dir)
+        logger.info('Relative path: %s', self.output_data_file.relative_to(self.scratch_dir))
         return self.output_data_file.relative_to(self.scratch_dir)
     
 class SimSiamKwargs(BaseModel):

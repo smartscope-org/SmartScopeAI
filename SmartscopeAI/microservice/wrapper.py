@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 WEIGHT_DIR = os.path.join(os.getenv("TEMPLATE_FILES", "template_files"), 'weights')
 IS_CUDA = False if eval(os.getenv('FORCE_CPU','False')) else torch.cuda.is_available()
-print(f'CUDA available: {IS_CUDA}')
+#print(f'CUDA available: {IS_CUDA}')
+logger.info('CUDA available: %s', IS_CUDA)
 
 
 # def find_squares(image, class_map:Dict=None, **kwargs):
