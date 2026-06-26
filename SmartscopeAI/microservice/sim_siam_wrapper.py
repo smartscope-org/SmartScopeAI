@@ -2,18 +2,20 @@ from .data import SimSiamData, SimSiamKwargs
 import torch
 import pandas as pd
 import numpy as np
+import logging
 from pathlib import Path
 from typing import List
 from ..smartscope_simsiam import map_embeddings, main, inference, cluster
 from ..smartscope_simsiam.arguments import get_args
 
+logger = logging.getLogger(__name__)
 
 
 def load_inferences(file_path: Path) -> pd.DataFrame:
 
     # Load the parquet file into a DataFrame
     if not file_path.is_file():
-        print(f'File {file_path} not found, creating empty dataframe')
+        logger.warning('File %s not found, creating empty dataframe', file_path)
         df = pd.DataFrame()
         return df
     df = pd.read_parquet(file_path)
@@ -27,53 +29,54 @@ def extract_targets_from_inference(df: pd.DataFrame, all_pks:List[str]) -> pd.Da
     all_pks_in_df = set(filtered_targets.index.tolist())
     missing_pks = set(all_pks) - all_pks_in_df
     if len(missing_pks) > 0:
-        print(f'Warning: {len(missing_pks)} targets not found in inference results')
-        print(f'Missing targets: {missing_pks}')
+        logger.warning('Warning: %s targets not found in inference results', len(missing_pks))
+        logger.warning('Missing targets: %s', missing_pks)
         return filtered_targets, missing_pks
     else:
-        print('All targets found in inference results')
+        logger.info('All targets found in inference results')
         return filtered_targets, []
 
 
 
 def siam_siam_inference(data):
     validated_data = SimSiamData.model_validate_json(data)
-    print(f'Validated data: {validated_data.model_dump()}')
-    print('Current directory:', Path('.').resolve())
-    print(str(validated_data.scratch_checkpoint_path))
+    logger.info('Validated data: %s', validated_data.model_dump())
+    logger.info('Current directory: %s', Path('.').resolve())
+    logger.info('Scratch checkpoint path: %s', str(validated_data.scratch_checkpoint_path))
     image_directory = validated_data.image_directory
     # extract_directory = validated_data.extract_directory
     output_directory = validated_data.output_directory
     for directory in [output_directory]:
         if not directory.is_dir():
-            print(f'Creating directory {directory}')
+            logger.info('Creating directory: %s', directory)
             directory.mkdir(parents=True, exist_ok=True)
 
     ### check if images were already processed with the same checkpoint
     df = load_inferences(validated_data.output_data_file)
     # df.drop(df.index[0], inplace=True)
     df.drop(columns=['assignments', 'umap', 'tsne', 'pca'], inplace=True, errors='ignore')
-    print(df.head())
+    logger.info('Inference results:')
+    logger.info(df.head())
     if not df.empty:
-        print(f'Found {len(df)} previous inferences')
+        logger.info('Found %s previous inferences', len(df))
         filtered_df, missing_pks = extract_targets_from_inference(df, validated_data.all_target_pks)
-        print(f'Found {len(filtered_df)} targets in previous inferences. Missing {len(missing_pks)} targets')
+        logger.info('Found %s targets in previous inferences. Missing %s targets', len(filtered_df), len(missing_pks))
         if len(missing_pks) == 0:
             is_checkpoint_up_to_date = set(filtered_df.checkpoint_path.tolist()) == set([validated_data.checkpoint_path])
             if is_checkpoint_up_to_date:
-                print(f'Images already processed with checkpoint \"{validated_data.checkpoint_path}\", skipping')
+                logger.info('Images already processed with checkpoint \"%s\", skipping', validated_data.checkpoint_path)
                 return str(validated_data.output_data_file_relative_to_scratch)
         
         #check which images where processing with a different checkpoint
         filtered_df = filtered_df[filtered_df.checkpoint_path != validated_data.checkpoint_path]
-        print(f'Filtered {len(filtered_df)} images that were processed with a different checkpoint')
+        logger.info('Filtered %s images that were processed with a different checkpoint', len(filtered_df))
 
         df = df.drop(filtered_df.index)
         missing_pks = set(missing_pks) | set(filtered_df.index.tolist())
-        print(f'Updated missing pks: {missing_pks}, only running inference on these targets')
+        logger.info('Updated missing pks: %s, only running inference on these targets', missing_pks)
         temp_dir = validated_data.data_dir / 'tmp'
         if not temp_dir.is_dir():
-            print(f'Creating temporary directory {temp_dir}')
+            logger.info('Creating temporary directory: %s', temp_dir)
             temp_dir.mkdir(parents=True, exist_ok=True)
         #make sure the temp directory is empty
         for file in temp_dir.glob('*'):
@@ -85,12 +88,12 @@ def siam_siam_inference(data):
                 temp_file = temp_dir / f'{pk}.jpg'
                 temp_file.symlink_to(image_file[0])
             else:
-                print(f'Warning: Image file for {pk} not found, skipping')
+                logger.warning('Warning: Image file for %s not found, skipping', pk)
         image_directory = temp_dir
         #linking the missing pk images to a temp directory
           
 
-    print(f'Starting inference')
+    logger.info('Starting inference')
 
     args = SimSiamKwargs(
             config_file= './SmartscopeAI/smartscope_simsiam/example/config/simsiam_smartscope_squares.yaml',
@@ -100,9 +103,9 @@ def siam_siam_inference(data):
     )
     args = get_args(args)
     hardware = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f'Using device: {hardware}')
+    logger.info('Using device: %s', hardware)
     image_files, embeddings =  map_embeddings.main(hardware, args)
-    print(len(image_files), len(embeddings))
+    logger.info('Found %s image files and %s embeddings', len(image_files), len(embeddings))
 
 
     # assignments = cluster.run(args, embeddings)
@@ -139,10 +142,10 @@ def siam_siam_training(data):
     output_directory = validated_data.output_directory
     for directory in [output_directory]:
         if not directory.is_dir():
-            print(f'Creating directory {directory}')
+            logger.info('Creating directory: %s', directory)
             directory.mkdir(parents=True, exist_ok=True)
 
-    print(f'Starting training')
+    logger.info('Starting training')
 
     args = SimSiamKwargs(
             config_file= f'./SmartscopeAI/smartscope_simsiam/example/config/simsiam_smartscope_{validated_data.mag_level}s.yaml',
@@ -151,7 +154,7 @@ def siam_siam_training(data):
     )
     args = get_args(args)
     hardware = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f'Using device: {hardware}')
+    logger.info('Using device: %s', hardware)
     main.main(hardware, args)
     return str(output_directory)
     
