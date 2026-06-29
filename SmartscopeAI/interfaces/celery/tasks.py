@@ -63,7 +63,7 @@ def callback_sim_siam_training(sender=None, task_id=None, state=None, retval=Non
         logger.debug("[%s] Ignoring callback for task %s", task_id, sender.name)
         return  # Ignore other tasks
     
-    callback_url = f"{celery_settings}/sim_siam/training_callback/"
+    callback_url = f"{celery_settings.CALLBACK_URL}/sim_siam/training_callback/"
     payload = {
         "process_id": task_id,
     }
