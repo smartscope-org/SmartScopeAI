@@ -2,3 +2,7 @@
 	path = SmartscopeAI/smartscopeAI
 	url = https://gitlab.cs.duke.edu/bartesaghilab/smartscopeAI.git
 	branch = pytorch312
+[submodule "SmartscopeAI/smartscope_simsiam"]
+	path = SmartscopeAI/smartscope_simsiam
+	url = https://gitlab.cs.duke.edu/laura.he/smartscope_simsiam.git
+	branch = smartscope

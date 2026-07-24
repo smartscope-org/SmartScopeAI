@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 WEIGHT_DIR = os.path.join(os.getenv("TEMPLATE_FILES", "template_files"), 'weights')
 IS_CUDA = False if eval(os.getenv('FORCE_CPU','False')) else torch.cuda.is_available()
-print(f'CUDA available: {IS_CUDA}')
+#print(f'CUDA available: {IS_CUDA}')
+logger.info('CUDA available: %s', IS_CUDA)
 
 
 # def find_squares(image, class_map:Dict=None, **kwargs):
@@ -39,8 +40,8 @@ def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=
    
     def filter_hole_class(hole):
 
-        logger.debug(f'{hole}')
-        logger.debug(class_mapping)
+        # logger.debug(f'{hole}')
+        # logger.debug(class_mapping)
         return class_mapping[hole[-1]]['name'] == 'Hole'
     
     if isinstance(image, bytes):
@@ -56,7 +57,7 @@ def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=
     
     logger.debug(f'kwargs: {kwargs}')
     all_targets = detect_holes_yolo(image, **kwargs)
-    logger.debug(f'{all_targets},{type(all_targets)}')
+    # logger.debug(f'{all_targets},{type(all_targets)}')
     holes = list(filter(lambda x: filter_hole_class(x), all_targets))
     holes = [np.array(hole[0:-1]) * scaling_factor for hole in holes]
 
@@ -64,21 +65,21 @@ def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=
     # success = True
     # if len(holes) < success_threshold:
     #     success = False
-    logger.debug(f'{holes[0]},{type(holes[0])}')
+    # logger.debug(f'{holes[0]},{type(holes[0])}')
     
     holes = [(np.array(hole)-np.array(list(center)*2)) + np.array(list(center)*2) for hole in holes]
     holes = [i.tolist() for i in holes]
     # logger.debug(f'{holes[0]},{type(holes[0])}')
     return holes
 
-def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:int=10,  **kwargs):
+def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:int=10, scaling_factor=1,  **kwargs):
    
     if isinstance(image, bytes):
         image = np.frombuffer(image, dtype=np.uint8)
         image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
     
     center = np.array([image.shape[1]/2, image.shape[0]//2],dtype=int)
-    logger.info('Running AI hole detection')
+    logger.info('Running AI square detection')
     # centroid = find_square_center(montage.image)
     kwargs['weights_circle'] = os.path.join(WEIGHT_DIR, kwargs['weights_circle']) 
     if not IS_CUDA:
@@ -86,7 +87,7 @@ def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:in
     
     logger.debug(f'kwargs: {kwargs}')
     all_targets = detect_holes_yolo(image, **kwargs)
-    logger.debug(f'{all_targets},{type(all_targets)}')
+    # logger.debug(f'{all_targets},{type(all_targets)}')
 
     logger.info(f'AI hole detection found {len(all_targets)} holes')
     # success = True
@@ -96,9 +97,12 @@ def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:in
 
     labels = [hole[-1] for hole in all_targets]
     holes = [(np.array(hole[0:-1])-np.array(list(center)*2)) + np.array(list(center)*2) for hole in all_targets]
+    holes = [hole * scaling_factor for hole in holes]
     holes = [i.tolist() for i in holes]
     # logger.debug(f'{holes[0]},{type(holes[0])}')
     return holes, labels
+
+
 # def find_holes(montage:Montage, class_map:Dict=None, success_threshold:int=10,  **kwargs):
 #     return find_holes_from_image(montage.image, class_map, success_threshold, **kwargs)
 

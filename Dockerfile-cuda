@@ -29,6 +29,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY ./template_files /opt/template_files
 # The following secrets are available during build time
 RUN useradd --create-home appuser
+RUN mkdir -p /opt/logs && chown appuser /opt/logs
 USER appuser
 
 
@@ -38,6 +39,8 @@ COPY ./SmartscopeAI SmartscopeAI
 # Set up environment variables for production
 ENV PATH="/app/.venv/bin:$PATH"
 ENV TEMPLATE_FILES="/opt/template_files/"
+ENV NUMBA_CACHE_DIR="/tmp/numba_cache"
+ENV LOGDIR="/opt/logs/"
 
 # Start the application with Uvicorn in production mode, using environment variable references
 CMD ["celery", "-A", "SmartscopeAI.interfaces.celery.app", "worker", "--loglevel=DEBUG", "--pool=solo"]
