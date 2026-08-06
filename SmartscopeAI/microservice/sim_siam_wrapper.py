@@ -96,7 +96,7 @@ def siam_siam_inference(data):
     logger.info('Starting inference')
 
     args = SimSiamKwargs(
-            config_file= './SmartscopeAI/smartscope_simsiam/example/config/simsiam_smartscope_squares.yaml',
+            config_file= f'./SmartscopeAI/smartscope_simsiam/example/config/simsiam_smartscope_{validated_data.mag_level}s.yaml',
             data_dir= str(image_directory),
             output_dir= str(output_directory),
             checkpoint_path= str(validated_data.scratch_checkpoint_path),
