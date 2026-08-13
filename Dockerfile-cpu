@@ -23,8 +23,11 @@ COPY ./pyproject.toml .
 ENV UV_LINK_MODE=copy
 
 
+COPY pyproject.toml uv.lock* ./
+
+# If you haven't updated pyproject.toml yet, this will still fail on llvmlite
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --extra cpu && chmod -R 755 /root
+    uv sync --extra cpu
 
 COPY ./template_files /opt/template_files
 # The following secrets are available during build time

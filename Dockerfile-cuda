@@ -18,8 +18,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
-COPY ./pyproject.toml .
-# COPY ./uv.lock .
+COPY pyproject.toml uv.lock* ./
 
 ENV UV_LINK_MODE=copy
 
