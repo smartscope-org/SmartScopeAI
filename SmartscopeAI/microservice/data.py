@@ -21,6 +21,7 @@ class FindHolesKwargs(BaseModel):
     scaling_factor: float =  1
     agnostic: bool = False
     class_mapping: Optional[Dict]
+    return_confidence: bool = False
     
 class SimSiamTargets(BaseModel):
     x: int

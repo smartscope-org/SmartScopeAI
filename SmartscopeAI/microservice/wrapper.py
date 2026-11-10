@@ -51,6 +51,7 @@ def find_holes_from_image(image, class_mapping:Dict=None, success_threshold:int=
     center = np.array([image.shape[1]/2, image.shape[0]//2],dtype=int)
     logger.info('Running AI hole detection')
     # centroid = find_square_center(montage.image)
+    kwargs.pop('return_confidence', None)
     kwargs['weights_circle'] = os.path.join(WEIGHT_DIR, kwargs['weights_circle']) 
     if not IS_CUDA:
         kwargs['device'] = 'cpu'
@@ -81,13 +82,18 @@ def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:in
     center = np.array([image.shape[1]/2, image.shape[0]//2],dtype=int)
     logger.info('Running AI square detection')
     # centroid = find_square_center(montage.image)
+    return_confidence = kwargs.pop('return_confidence', False)
     kwargs['weights_circle'] = os.path.join(WEIGHT_DIR, kwargs['weights_circle']) 
     if not IS_CUDA:
         kwargs['device'] = 'cpu'
     
     logger.debug(f'kwargs: {kwargs}')
-    all_targets = detect_holes_yolo(image, **kwargs)
+    all_targets = detect_holes_yolo(image, return_confidence=return_confidence, **kwargs)
     # logger.debug(f'{all_targets},{type(all_targets)}')
+    confidences = None
+    if return_confidence:
+        confidences = [float(t[-1]) for t in all_targets]
+        all_targets = [t[:-1] for t in all_targets]
 
     logger.info(f'AI hole detection found {len(all_targets)} holes')
     # success = True
@@ -100,6 +106,8 @@ def find_squares_from_image(image, class_mapping:Dict=None, success_threshold:in
     holes = [hole * scaling_factor for hole in holes]
     holes = [i.tolist() for i in holes]
     # logger.debug(f'{holes[0]},{type(holes[0])}')
+    if return_confidence:
+        return holes, labels, confidences
     return holes, labels
 
 
