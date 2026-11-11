@@ -6,7 +6,7 @@ from .app import app
 from . import settings as celery_settings
 
 from ...microservice.main import get_method, run_method
-from ...microservice.sim_siam_wrapper import siam_siam_inference, siam_siam_training
+from ...microservice.sim_siam_wrapper import siam_siam_inference, siam_siam_training, siam_siam_cluster
 
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,16 @@ def sim_siam_data(self, data: str):
         return result
     except Exception:
         logger.exception('sim_siam_inference failed (task_id=%s)', self.request.id)
+        raise
+
+@app.task(bind=True)
+def sim_siam_cluster(self, data: str):
+    try:
+        result = siam_siam_cluster(data)
+        logger.debug('sim_siam_cluster wrote %s', result)
+        return result
+    except Exception:
+        logger.exception('sim_siam_cluster failed (task_id=%s)', self.request.id)
         raise
 
 @app.task(bind=True)

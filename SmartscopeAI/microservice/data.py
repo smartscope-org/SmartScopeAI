@@ -78,6 +78,20 @@ class SimSiamData(BaseModel):
         return Path(self.output_directory / f'sim_siam_embeddings_{self.mag_level}.parquet.zip',)
     
     @property
+    def cluster_input_file(self) -> Path:
+        """Snapshot of the embeddings copied in by SmartScope for clustering.
+        Kept separate from output_data_file so clustering never races with inference writes."""
+        return Path(self.output_directory / f'sim_siam_cluster_input_{self.mag_level}.parquet.zip')
+
+    @property
+    def output_cluster_file(self) -> Path:
+        return Path(self.output_directory / f'sim_siam_clusters_{self.mag_level}.parquet.zip')
+
+    @property
+    def output_cluster_file_relative_to_scratch(self) -> Path:
+        return self.output_cluster_file.relative_to(self.scratch_dir)
+
+    @property
     def output_data_file_relative_to_scratch(self) -> Path:
         logger.info('Output data file: %s, scratch dir: %s', self.output_data_file, self.scratch_dir)
         logger.info('Relative path: %s', self.output_data_file.relative_to(self.scratch_dir))

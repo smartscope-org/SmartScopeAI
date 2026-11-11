@@ -3,9 +3,13 @@ import torch
 import pandas as pd
 import numpy as np
 import logging
+import os
 from pathlib import Path
 from typing import List
 from ..smartscope_simsiam import map_embeddings, main, inference, cluster
+from sklearn.preprocessing import normalize
+from sklearn.decomposition import PCA
+import umap
 from ..smartscope_simsiam.arguments import get_args
 
 logger = logging.getLogger(__name__)
@@ -20,6 +24,18 @@ def load_inferences(file_path: Path) -> pd.DataFrame:
         return df
     df = pd.read_parquet(file_path)
     return df
+
+def atomic_to_parquet(df: pd.DataFrame, path: Path):
+    """Write next to the target then os.replace, so readers never see a partially written file."""
+    path = Path(path)
+    tmp = path.with_name(f'.{path.name}.{os.getpid()}.tmp')
+    try:
+        df.to_parquet(tmp, compression='gzip')
+        os.replace(tmp, path)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
 
 def extract_targets_from_inference(df: pd.DataFrame, all_pks:List[str]) -> pd.DataFrame:
 
@@ -118,22 +134,54 @@ def siam_siam_inference(data):
     inference_df.set_index('pk', inplace=True)
     df = pd.concat([df, inference_df])
 
-    if len(df) > 3:
-        all_embeddings = np.array(df['embeddings'].to_list())
-        args.disable_plotting = False
-        args.data_dir = str(validated_data.image_directory)
-        args.embeddings = all_embeddings
-        args.fit_only = True  # Set to True to skip plotting
-        df['assignments'], df['umap'], df['pca'] = map_embeddings.main(hardware, args)
-    else:
-        df['assignments'] = 0
-        df['umap'] = 0
-        df['pca'] = 0
+    # Clustering / UMAP / PCA are intentionally NOT run here anymore: they scale with the
+    # whole grid and are only used for WebUI display. See siam_siam_cluster.
 
-
-
-    df.to_parquet(validated_data.output_data_file, compression='gzip')
+    atomic_to_parquet(df, validated_data.output_data_file)
     return str(validated_data.output_data_file_relative_to_scratch)
+
+def fit_clusters(args, embeddings: np.ndarray):
+    """Cluster assignments + 2D UMAP/PCA projections for the given embeddings.
+    Same math as map_embeddings.main(fit_only=True) but without building a DataLoader over the images."""
+    normed_embeddings = normalize(embeddings, axis=1, norm='l2')
+    os.makedirs(os.path.join(args.output_dir, 'inference'), exist_ok=True)
+    assignments = cluster.run(args, normed_embeddings)
+    pca_fit = PCA(n_components=2).fit_transform(normed_embeddings)
+    umap_fit = umap.UMAP(n_neighbors=args.umap['num_neighbors'],
+                         min_dist=args.umap['min_dist'],
+                         n_components=2,
+                         random_state=args.umap['random_state']).fit_transform(normed_embeddings)
+    return assignments, umap_fit.tolist(), pca_fit.tolist()
+
+
+def siam_siam_cluster(data):
+    validated_data = SimSiamData.model_validate_json(data)
+    input_file = validated_data.cluster_input_file
+    if not input_file.is_file():
+        input_file = validated_data.output_data_file
+    df = load_inferences(input_file)
+    if df.empty:
+        raise FileNotFoundError(f'No embeddings found at {input_file}')
+    logger.info('Clustering %s embeddings from %s', len(df), input_file)
+
+    out = pd.DataFrame(index=df.index)
+    if len(df) > 3:
+        args = SimSiamKwargs(
+            config_file=f'./SmartscopeAI/smartscope_simsiam/example/config/simsiam_smartscope_{validated_data.mag_level}s.yaml',
+            data_dir=str(validated_data.image_directory),
+            output_dir=str(validated_data.output_directory),
+        )
+        args = get_args(args)
+        all_embeddings = np.array(df['embeddings'].to_list())
+        out['assignments'], out['umap'], out['pca'] = fit_clusters(args, all_embeddings)
+    else:
+        out['assignments'] = 0
+        out['umap'] = 0
+        out['pca'] = 0
+
+    atomic_to_parquet(out, validated_data.output_cluster_file)
+    return str(validated_data.output_cluster_file_relative_to_scratch)
+
 
 def siam_siam_training(data):
     validated_data = SimSiamData.model_validate_json(data)
