@@ -25,12 +25,19 @@ def load_inferences(file_path: Path) -> pd.DataFrame:
     df = pd.read_parquet(file_path)
     return df
 
+def _as_float32(values) -> np.ndarray:
+    if isinstance(values, torch.Tensor):
+        values = values.detach().cpu().numpy()
+    return np.asarray(values, dtype=np.float32)
+
+
 def atomic_to_parquet(df: pd.DataFrame, path: Path):
     """Write next to the target then os.replace, so readers never see a partially written file."""
     path = Path(path)
     tmp = path.with_name(f'.{path.name}.{os.getpid()}.tmp')
     try:
-        df.to_parquet(tmp, compression='gzip')
+        # zstd writes several times faster than gzip; float embeddings barely compress either way.
+        df.to_parquet(tmp, compression='zstd')
         os.replace(tmp, path)
     finally:
         if tmp.exists():
@@ -130,8 +137,13 @@ def siam_siam_inference(data):
     inference_df = pd.DataFrame(data)
     inference_df['pk'] = inference_df['image_files'].apply(lambda x: Path(x).stem)
     inference_df['checkpoint_path'] = validated_data.checkpoint_path
-    inference_df['embeddings'] = embeddings.tolist()
+    # float32 arrays rather than Python lists: half the data, and pyarrow converts arrays
+    # without walking every float.
+    inference_df['embeddings'] = list(_as_float32(embeddings))
     inference_df.set_index('pk', inplace=True)
+    if not df.empty:
+        # Rows from files written before this change come back as float64.
+        df['embeddings'] = [_as_float32(e) for e in df['embeddings']]
     df = pd.concat([df, inference_df])
 
     # Clustering / UMAP / PCA are intentionally NOT run here anymore: they scale with the
