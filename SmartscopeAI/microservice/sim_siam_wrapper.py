@@ -51,21 +51,17 @@ def extract_targets_from_inference(df: pd.DataFrame, all_pks:List[str]) -> pd.Da
     filtered_targets = df[present_mask]
     all_pks_in_df = set(filtered_targets.index.tolist())
     missing_pks = set(all_pks) - all_pks_in_df
+    # New targets are expected on every run; the caller logs how many.
     if len(missing_pks) > 0:
-        logger.warning('Warning: %s targets not found in inference results', len(missing_pks))
-        logger.warning('Missing targets: %s', missing_pks)
         return filtered_targets, missing_pks
-    else:
-        logger.info('All targets found in inference results')
-        return filtered_targets, []
+    return filtered_targets, []
 
 
 
 def siam_siam_inference(data):
     validated_data = SimSiamData.model_validate_json(data)
-    logger.info('Validated data: %s', validated_data.model_dump())
-    logger.info('Current directory: %s', Path('.').resolve())
-    logger.info('Scratch checkpoint path: %s', str(validated_data.scratch_checkpoint_path))
+    logger.info('SimSiam inference for %s (%s), checkpoint %s',
+                validated_data.dataset_name, validated_data.mag_level, validated_data.scratch_checkpoint_path)
     image_directory = validated_data.image_directory
     # extract_directory = validated_data.extract_directory
     output_directory = validated_data.output_directory
@@ -78,12 +74,10 @@ def siam_siam_inference(data):
     df = load_inferences(validated_data.output_data_file)
     # df.drop(df.index[0], inplace=True)
     df.drop(columns=['assignments', 'umap', 'tsne', 'pca'], inplace=True, errors='ignore')
-    logger.info('Inference results:')
-    logger.info(df.head())
     if not df.empty:
-        logger.info('Found %s previous inferences', len(df))
         filtered_df, missing_pks = extract_targets_from_inference(df, validated_data.all_target_pks)
-        logger.info('Found %s targets in previous inferences. Missing %s targets', len(filtered_df), len(missing_pks))
+        logger.info('%s previous inferences; %s current targets already embedded, %s new',
+                    len(df), len(filtered_df), len(missing_pks))
         if len(missing_pks) == 0:
             is_checkpoint_up_to_date = set(filtered_df.checkpoint_path.tolist()) == set([validated_data.checkpoint_path])
             if is_checkpoint_up_to_date:
@@ -92,11 +86,12 @@ def siam_siam_inference(data):
         
         #check which images where processing with a different checkpoint
         filtered_df = filtered_df[filtered_df.checkpoint_path != validated_data.checkpoint_path]
-        logger.info('Filtered %s images that were processed with a different checkpoint', len(filtered_df))
+        if len(filtered_df):
+            logger.info('%s targets were embedded with a different checkpoint, redoing them', len(filtered_df))
 
         df = df.drop(filtered_df.index)
         missing_pks = set(missing_pks) | set(filtered_df.index.tolist())
-        logger.info('Updated missing pks: %s, only running inference on these targets', missing_pks)
+        logger.info('Running inference on %s targets', len(missing_pks))
         temp_dir = validated_data.data_dir / 'tmp'
         if not temp_dir.is_dir():
             logger.info('Creating temporary directory: %s', temp_dir)
@@ -105,13 +100,16 @@ def siam_siam_inference(data):
         for file in temp_dir.glob('*'):
             file.unlink()
         #link the missing pks to the temp directory
+        # One listing of the image folders rather than a search per target.
+        images_by_pk = {f.stem: f for f in validated_data.image_directory.glob('*/*.jpg')}
+        not_found = []
         for pk in missing_pks:
-            image_file = list(validated_data.image_directory.glob(f'*/{pk}.jpg'))
-            if image_file and image_file[0].is_file():
-                temp_file = temp_dir / f'{pk}.jpg'
-                temp_file.symlink_to(image_file[0])
+            if pk in images_by_pk:
+                (temp_dir / f'{pk}.jpg').symlink_to(images_by_pk[pk])
             else:
-                logger.warning('Warning: Image file for %s not found, skipping', pk)
+                not_found.append(pk)
+        if not_found:
+            logger.warning('%s image files not found, skipping them (first few: %s)', len(not_found), not_found[:5])
         image_directory = temp_dir
         #linking the missing pk images to a temp directory
           

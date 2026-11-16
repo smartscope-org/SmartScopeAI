@@ -70,7 +70,7 @@ class SimSiamData(BaseModel):
     def scratch_checkpoint_path(self) -> Path:
         if self.checkpoint_path == 'None':
             return Path('./SmartscopeAI/smartscope_simsiam/example/pretrained_checkpoints', f'{self.mag_level}s/model_best.pth')
-        logger.info('Using provided checkpoint path: %s, %s', self.checkpoint_path, type(self.checkpoint_path))
+        logger.debug('Using provided checkpoint path: %s', self.checkpoint_path)
         return self.output_directory / 'checkpoints' / 'model_best.pth'
     
     @property
@@ -93,8 +93,7 @@ class SimSiamData(BaseModel):
 
     @property
     def output_data_file_relative_to_scratch(self) -> Path:
-        logger.info('Output data file: %s, scratch dir: %s', self.output_data_file, self.scratch_dir)
-        logger.info('Relative path: %s', self.output_data_file.relative_to(self.scratch_dir))
+        logger.debug('Output data file: %s, scratch dir: %s', self.output_data_file, self.scratch_dir)
         return self.output_data_file.relative_to(self.scratch_dir)
     
 class SimSiamKwargs(BaseModel):
